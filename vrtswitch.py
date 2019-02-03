@@ -7,6 +7,9 @@ class VRTSwitchAPI(object):
     def __init__(self, version=3.3, server_key="13bc22628889ac02d14858a873af5e09"):
         self.version = str(version)
         self.server_key = server_key
+        self.session = requests.Session()
+        self.api_url = "https://switchserver.triangle-factory.be/api-" + self.version + "/"
+        self.authorization_headers = {"switch_authorization": None}
 
     def create_headers(self):
         m = hashlib.md5()
@@ -26,13 +29,31 @@ class VRTSwitchAPI(object):
             "key": self.server_key
         }
 
-    def authorization_token(self):
-        response = requests.get(
-            "https://switchserver.triangle-factory.be/api-" + self.version + "/auth/register",
-            headers=api.create_headers()
+    def create_user(self, username, birth_date, region="BE"):
+        response = self.session.post(
+            self.api_url + "users/create_user",
+            headers=self.authorization_headers,
+            data={
+                "username": username,
+                "region": region,
+                "birth_date": birth_date,
+                "character_info": None
+            }
+        )
+        print(response.text)
+        print(response.json)
+
+    def authorize(self):
+        headers = api.create_headers()
+        response = self.session.get(
+            self.api_url + "auth/register",
+            headers=headers
         )
 
         if response.status_code == 200:
+            self.authorization_headers["switch_authorization"] = response.headers["switch_authorization"]
+            self.authorization_headers.update(headers)
+            print(self.authorization_headers)
             return response.headers["switch_authorization"]
         else:
             return False
@@ -40,4 +61,5 @@ class VRTSwitchAPI(object):
 
 if __name__ == '__main__':
     api = VRTSwitchAPI()
-    print(api.authorization_token())
+    api.authorize()
+    api.create_user("test5439", "06051995")
